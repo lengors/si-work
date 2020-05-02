@@ -108,8 +108,6 @@ def depthFirstSearch(problem):
 
     return list()
 
-    
-
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
     "* YOUR CODE HERE *"
@@ -136,7 +134,25 @@ def breadthFirstSearch(problem):
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    from game import Directions as d
+
+    states = set()
+    queue = util.PriorityQueueWithFunction(lambda item : problem.getCostOfActions(item[1]))
+    current_state = problem.getStartState()
+    queue.push((current_state, list()))
+    states.add(current_state)
+    while not queue.isEmpty():
+        current_state, *remain = queue.pop()
+        if problem.isGoalState(current_state):
+            return remain[-1]
+
+        successors = problem.getSuccessors(current_state)
+        for state, direction, stuff_idk in successors:
+            if state not in states:
+                queue.push((state, remain[-1] + [direction]))
+                states.add(state)
+
+    return list()
 
 def nullHeuristic(state, problem=None):
     """
