@@ -268,27 +268,6 @@ def euclideanHeuristic(position, problem, info={}):
 # This portion is incomplete.  Time to write code!  #
 #####################################################
 
-class CornerState:
-    def __init__(self, position, corners, goal = None):
-        self.position = position
-        self.corners = tuple(corners)
-        if goal is None:
-            self.update()
-        else:
-            self.goal = goal
-
-    def update(self):
-        corners = list(self.corners)
-        corners.sort(key = lambda value : abs(value[0] - self.position[0]) + abs(value[1] - self.position[1]))
-        self.goal = corners.pop(0)
-        self.corners = corners
-
-    def __hash__(self):
-        return hash((self.position, tuple(self.corners)))
-
-    def __eq__(self, value):
-        return self.position == value.position and self.corners == value.corners
-
 class CornersProblem(search.SearchProblem):
     """
     This search problem finds paths through all four corners of a layout.
@@ -311,8 +290,7 @@ class CornersProblem(search.SearchProblem):
         # Please add any code here which you would like to use
         # in initializing the problem
         "*** YOUR CODE HERE ***"
-        self.__corners = list(self.corners)
-        # self.__goal = self.__corners.pop(0)
+        self.corners = set(self.corners)
 
     def getStartState(self):
         """
@@ -320,18 +298,16 @@ class CornersProblem(search.SearchProblem):
         space)
         """
         "*** YOUR CODE HERE ***"
-        return CornerState(self.startingPosition, self.__corners)
+        # startState = CornerState(self.startingPosition, self.__corners_permutations)
+        # self.goal = startState.goal
+        return (self.startingPosition, (self.startingPosition) if self.startingPosition in self.corners else ())
 
     def isGoalState(self, state):
         """
         Returns whether this search state is a goal state of the problem.
         """
         "*** YOUR CODE HERE ***"
-        if state.position == state.goal:
-            if len(state.corners) == 0:
-                return True
-            state.update()
-        return False
+        return len(set(state[1])) == len(self.corners)
 
     def getSuccessors(self, state):
         """
@@ -352,12 +328,15 @@ class CornersProblem(search.SearchProblem):
             #   dx, dy = Actions.directionToVector(action)
             #   nextx, nexty = int(x + dx), int(y + dy)
             #   hitsWall = self.walls[nextx][nexty]
-            x,y = state.position
+            x,y = state[0]
             dx, dy = Actions.directionToVector(action)
             nextx, nexty = int(x + dx), int(y + dy)
             if not self.walls[nextx][nexty]:
-                nextState = CornerState((nextx, nexty), state.corners, state.goal)
-                successors.append( (nextState, action, 1) )
+                # nextState = CornerState((nextx, nexty), state.corners, state.goal)
+                # self.goal = nextState.goal
+                position = (nextx, nexty)
+                nextState = (position, tuple(set(state[1]) | { position }) if position in self.corners else tuple(state[1]))
+                successors.append((nextState, action, 1))
 
         self._expanded += 1 # DO NOT CHANGE
         return successors
