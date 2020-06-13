@@ -287,8 +287,6 @@ class CornersProblem(search.SearchProblem):
             if not startingGameState.hasFood(*corner):
                 print(('Warning: no food in corner ' + str(corner)))
         self._expanded = 0 # DO NOT CHANGE; Number of search nodes expanded
-        # Please add any code here which you would like to use
-        # in initializing the problem
         "*** YOUR CODE HERE ***"
         self.corners = set(self.corners)
 
@@ -298,8 +296,6 @@ class CornersProblem(search.SearchProblem):
         space)
         """
         "*** YOUR CODE HERE ***"
-        # startState = CornerState(self.startingPosition, self.__corners_permutations)
-        # self.goal = startState.goal
         return (self.startingPosition, (self.startingPosition) if self.startingPosition in self.corners else ())
 
     def isGoalState(self, state):
@@ -319,21 +315,12 @@ class CornersProblem(search.SearchProblem):
             state, 'action' is the action required to get there, and 'stepCost'
             is the incremental cost of expanding to that successor
         """
-
         successors = []
         for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
-            # Add a successor state to the successor list if the action is legal
-            # Here's a code snippet for figuring out whether a new position hits a wall:
-            #   x,y = currentPosition
-            #   dx, dy = Actions.directionToVector(action)
-            #   nextx, nexty = int(x + dx), int(y + dy)
-            #   hitsWall = self.walls[nextx][nexty]
             x,y = state[0]
             dx, dy = Actions.directionToVector(action)
             nextx, nexty = int(x + dx), int(y + dy)
             if not self.walls[nextx][nexty]:
-                # nextState = CornerState((nextx, nexty), state.corners, state.goal)
-                # self.goal = nextState.goal
                 position = (nextx, nexty)
                 nextState = (position, tuple(set(state[1]) | { position }) if position in self.corners else tuple(state[1]))
                 successors.append((nextState, action, 1))
@@ -370,29 +357,26 @@ def cornersHeuristic(state, problem):
     """
     corners = problem.corners # These are the corner coordinates
     walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
+
     "*** YOUR CODE HERE ***"
-    aux = list(corners)
-    prob = search.SearchProblem()
-    prob.goal = aux[2]
-    length_maze = manhattanHeuristic(aux[0], prob)
+    from collections import namedtuple
+    Problem = namedtuple('Problem', 'goal')
 
+    estimated_cost = 0
+    current_position = state[0]
+    Problem = namedtuple('Problem', 'goal')
+    corners_left = corners.difference(state[1])
+    corners_left = [ Problem(goal = corner) for corner in corners_left ]
 
-    corners_visited = corners.intersection(state[1])
-    
-    corners_left = set()
-    for c in corners:
-        if c not in corners_visited:
-            corners_left.add(c) 
+    while len(corners_left) > 0:
+        corners_left.sort(key = lambda value : manhattanHeuristic(current_position, value))
+        closest_corner = corners_left.pop(0)
+        closest_distance = manhattanHeuristic(current_position, closest_corner)
+        current_position = closest_corner.goal
+        estimated_cost += closest_distance
+        
 
-    closest_dist = 999999
-    for corner in corners_left:
-        prob = search.SearchProblem()
-        prob.goal = corner
-        dist = manhattanHeuristic(state[0], prob)
-        if dist < closest_dist:
-            closest_dist = dist
-            closest_corner = corner
-    return closest_dist + length_maze * (len(corners_left) - 1)
+    return estimated_cost
 
 class AStarCornersAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
@@ -485,19 +469,21 @@ def foodHeuristic(state, problem):
     problem.heuristicInfo['wallCount']
     """
     "*** YOUR CODE HERE ***"
-    
-    position, foodGrid = state
-    dists = list()
-    for x in range(foodGrid.width):
-        for y in range(foodGrid.height):
-            if foodGrid[x][y]:
-                food = (x, y)
-                prob = search.SearchProblem()
-                prob.goal = food
-                dist = manhattanHeuristic(position, prob)
-                dists.append(dist)
+    from collections import namedtuple
 
-    return sum(dists) * len(dists)
+    estimated_cost = 0
+    current_position, foodGrid = state
+    Problem = namedtuple('Problem', 'goal')
+    available_foods = [ Problem(goal = (x, y)) for x in range(foodGrid.width) for y in range(foodGrid.height) if foodGrid[x][y] ]
+
+    while len(available_foods) > 0:
+        available_foods.sort(key = lambda value : manhattanHeuristic(current_position, value))
+        closest_food = available_foods.pop(0)
+        closest_distance = manhattanHeuristic(current_position, closest_food)
+        current_position = closest_food.goal
+        estimated_cost += closest_distance
+
+    return estimated_cost
    
 
 class ClosestDotSearchAgent(SearchAgent):
@@ -529,7 +515,7 @@ class ClosestDotSearchAgent(SearchAgent):
         problem = AnyFoodSearchProblem(gameState)
 
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return search.bfs(problem)
 
 class AnyFoodSearchProblem(PositionSearchProblem):
     """
@@ -565,7 +551,7 @@ class AnyFoodSearchProblem(PositionSearchProblem):
         x,y = state
 
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return self.food[x][y]
 
 def mazeDistance(point1, point2, gameState):
     """
