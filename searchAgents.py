@@ -364,7 +364,6 @@ def cornersHeuristic(state, problem):
 
     estimated_cost = 0
     current_position = state[0]
-    Problem = namedtuple('Problem', 'goal')
     corners_left = corners.difference(state[1])
     corners_left = [ Problem(goal = corner) for corner in corners_left ]
 
@@ -473,8 +472,13 @@ def foodHeuristic(state, problem):
 
     estimated_cost = 0
     current_position, foodGrid = state
-    Problem = namedtuple('Problem', 'goal')
-    available_foods = [ Problem(goal = (x, y)) for x in range(foodGrid.width) for y in range(foodGrid.height) if foodGrid[x][y] ]
+
+    if len(problem.heuristicInfo) == 0:
+        Problem = namedtuple('Problem', 'goal')
+        problem.heuristicInfo = { (x, y) : Problem(goal = (x, y)) for x in range(foodGrid.width) for y in range(foodGrid.height) if foodGrid[x][y] }
+        available_foods = list(problem.heuristicInfo.values())
+    else:
+        available_foods = [ food for food in problem.heuristicInfo.values() if foodGrid[food.goal[0]][food.goal[1]] ]
 
     while len(available_foods) > 0:
         available_foods.sort(key = lambda value : manhattanHeuristic(current_position, value))
